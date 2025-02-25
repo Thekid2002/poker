@@ -1,0 +1,11 @@
+.active {
+    background-color: pink;
+}
+
+.card {
+    border: 2px solid black;
+}
+
+.winner {
+    background-color: lightgreen;
+}

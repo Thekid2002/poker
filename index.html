@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Poker</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body style="margin: 0; padding: 0;">
+
+<div id="game-container" style="width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 30px">
+    <div id="pot-container" style="width: 100%; text-align: center;">
+        <h1>Poker</h1>
+        <span id="pot">Pot: 0</span>
+    </div>
+    <div id="table" style="width: 60%; display: flex; flex-direction: row; justify-content: space-between; text-align: center">
+        <div id="player-3" style="display: flex; flex-direction: column">
+            <h3>Player 3</h3>
+            <span id="player-3-cards">Cards: [Hidden]</span>
+            <span id="player-3-cash">Cash: 1000</span>
+            <span id="player-3-bet">Bet: 0</span>
+            <span id="player-3-role">Role: </span>
+            <span id="player-3-action">Action: </span>
+        </div>
+        <div>
+            <h1 style="padding-top: 50px;">Community cards:</h1>
+        </div>
+        <div id="player-4" style="display: flex; flex-direction: column">
+            <h3>Player 4</h3>
+            <span id="player-4-cards">Cards: [Hidden]</span>
+            <span id="player-4-cash">Cash: 1000</span>
+            <span id="player-4-bet">Bet: 0</span>
+            <span id="player-4-role">Role: </span>
+            <span id="player-4-action">Action: </span>
+        </div>
+    </div>
+    <div id="mid-table" style="width: 70%; display: flex; flex-direction: row; justify-content: space-between; text-align: center">
+        <div id="player-2" style="display: flex; flex-direction: column">
+            <h3>Player 2</h3>
+            <span id="player-2-cards">Cards: [Hidden]</span>
+            <span id="player-2-cash">Cash: 1000</span>
+            <span id="player-2-bet">Bet: 0</span>
+            <span id="player-2-role">Role: Dealer</span>
+            <span id="player-2-action">Action: </span>
+        </div>
+        <div id="community-cards">
+
+        </div>
+        <div id="player-5" style="display: flex; flex-direction: column">
+            <h3>Player 5</h3>
+            <span id="player-5-cards">Cards: [Hidden]</span>
+            <span id="player-5-cash">Cash: 1000</span>
+            <span id="player-5-bet">Bet: 0</span>
+            <span id="player-5-role">Role: SB</span>
+            <span id="player-5-action">Action: </span>
+        </div>
+    </div>
+    <div style="width: 100%; display: flex; flex-direction: row; justify-content: center; text-align: center">
+        <div id="player-1" class="active" style="display: flex; flex-direction: column">
+            <h3>Player 1</h3>
+            <span id="player-1-cards">
+            </span>
+            <span id="player-1-cash">Cash: 1000</span>
+            <span id="player-1-bet">Bet: 0</span>
+            <span id="player-1-role">Role: BB</span>
+        </div>
+    </div>
+    <div id="controls" style="width: 30%; justify-content: center; display: flex; flex-direction: row; gap: 20px">
+        <button id="fold-button" style="width: 100%">Fold</button>
+        <button id="call-check-button" style="width: 100%">Call/Check</button>
+        <button id="bet-button" style="width: 100%">Bet</button>
+    </div>
+</div>
+
+<script src="deck.js"></script>
+<script src="game.js"></script>
+<script src="ui.js"></script>
+<script src="index.js"></script>
+</body>
+</html>
