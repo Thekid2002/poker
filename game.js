@@ -4,8 +4,11 @@ let communityCards = [];
 let pot = 0;
 let currentPlayer = 0; 
 let communityCardsShown = 0;
+let visibleCommunityCards = [];
+let roles = [" ", "small blind", "big blind"];
 
  function initializePlayers() {
+     let dealer = Math.floor(Math.random() * 5);
     for (let i = 0; i < 5; i++) {
         players.push({
             cash: 1000,
@@ -14,9 +17,33 @@ let communityCardsShown = 0;
             cashElement: document.getElementById(`player-${i + 1}-cash`),
             betElement: document.getElementById(`player-${i + 1}-bet`),
             cardElement: document.getElementById(`player-${i + 1}-cards`),
-            cards: []
-        });
+            actionElement: document.getElementById(`player-${i + 1}-action`),
+            roleElement: document.getElementById(`player-${i + 1}-role`),
+            role: i === dealer ? "dealer" : roles[(i - dealer + 5) % 5] ?? "",
+            cards: [],
+            folded: false,
+        })
+        players[i].roleElement.innerHTML = `Role: ${players[i].role}`;
+
+        if(players[i].role === "dealer") {
+            currentPlayer = i;
+        }
+
+        if(players[i].role === "small blind") {
+            players[i].cash -= 50;
+            players[i].bet = 50;
+            pot += 50;
+        }
+
+        if(players[i].role === "big blind") {
+            players[i].cash -= 100;
+            players[i].bet = 100;
+            pot += 100;
+        }
+
+        players[i].cashElement.innerHTML = `Cash: ${players[i].cash}`;
     }
+
 }
 
 function deal(players) {
@@ -35,6 +62,7 @@ function playerBet(amount) {
     if (amount > 0 && players[currentPlayer].cash >= amount) {
         players[currentPlayer].bet += amount;
         players[currentPlayer].cash -= amount;
+        players[currentPlayer].actionElement.innerHTML = "Action: Bet";
         pot += amount;
     }
 }
@@ -45,13 +73,31 @@ function playerCallCheck() {
     if (callAmount > 0 && players[currentPlayer].cash >= callAmount) {
         players[currentPlayer].bet += callAmount;
         players[currentPlayer].cash -= callAmount;
+        players[currentPlayer].actionElement.innerHTML = "Action: Call";
         pot += callAmount;
+    }else {
+        players[currentPlayer].actionElement.innerHTML = "Action: Check";
     }
 }
 
+function playerFold() {
+     players[currentPlayer].container.classList.add("folded");
+     players[currentPlayer].actionElement.innerHTML = "Fold";
+     players[currentPlayer].folded = true;
+}
+
 function nextPlayer(aiTurn) {
+     let remainingPlayers = players.filter(player => !player.folded);
+    if(remainingPlayers.length === 1) {
+        determineWinner();
+        return;
+    }
     players[currentPlayer].container.classList.remove("active");
     currentPlayer = (currentPlayer + 1) % players.length;
+    if(players[currentPlayer].folded) {
+        nextPlayer(aiTurn);
+        return;
+    }
     players[currentPlayer].container.classList.add("active");
 
     if (currentPlayer !== 0) {
@@ -148,7 +194,8 @@ function evaluateHand(cards) {
 function determineWinner() {
      showAllHands();
 
-    let playerHands = players.map(player => {
+     let remainingPlayers = players.filter(player => !player.folded);
+    let playerHands = remainingPlayers.map(player => {
         return evaluateHand(player.cards.concat(communityCards));
     });
 
@@ -174,14 +221,24 @@ function resetRound() {
     players.forEach(player => {
         player.bet = 0;
         player.container.classList.remove("winner");
+        player.container.classList.remove("active");
+        if(player.folded) {
+            player.container.classList.remove("folded");
+        }
+        player.actionElement.innerHTML = "";
+        player.cardElement.innerHTML = "";
+        player.cards = [];
+        player.folded = false;
+        if(player.cash === 0) {
+            player.eliminated = true;
+            player.container.classList.add("eliminated");
+        }
     });
+    players = players.filter(player => !player.eliminated);
     pot = 0;
     currentPlayer = 0;
     communityCardsShown = 0;
     document.getElementById("community-cards").innerHTML = "";
-    players.forEach(player => {
-        player.cardElement.innerHTML = "";
-    });
     updateUI();
     setTimeout(newRound(), 10000);
 }
@@ -193,5 +250,6 @@ function newRound() {
 
     players[0].cardElement.appendChild(images[0]);
     players[0].cardElement.appendChild(images[1]);
+    nextPlayer(aiTurn);
     return true;
 }

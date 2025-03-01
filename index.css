@@ -9,3 +9,11 @@
 .winner {
     background-color: lightgreen;
 }
+
+.folded {
+    background-color: lightgray;
+}
+
+.eliminated {
+    background-color: lightcoral;
+}
