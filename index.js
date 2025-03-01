@@ -1,4 +1,36 @@
 
+function makeDecision(hand) {
+    let score = evaluateHand(hand);
+    let randomFactor = Math.random(); // Generates a random number between 0 and 1
+
+    if (score >= 6 || (score >= 4 && randomFactor > 0.5)) {
+        return 2; // Bet
+    } else if (score >= 4 || ( randomFactor > 0.5)) {
+        return 1; // Call/Check
+    } else {
+        return 0; // Fold
+    }
+}
+
+function aiTurn() {
+    console.log("AI: ", currentPlayer);
+    let aiHand = [...players[currentPlayer].cards, ...visibleCommunityCards];
+    let choice = makeDecision(aiHand);
+
+    switch (choice) {
+        case 0:
+            playerFold();
+            break;
+        case 1:
+            playerCallCheck();
+            break;
+        case 2:
+            playerBet(100);
+            break;
+    }
+    nextPlayer(aiTurn);
+    updateUI();
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     const foldButton = document.getElementById("fold-button");
@@ -41,39 +73,6 @@ document.addEventListener("DOMContentLoaded", () => {
         nextPlayer(aiTurn);
         updateUI();
     });
-
-    function makeDecision(hand) {
-        let score = evaluateHand(hand);
-        let randomFactor = Math.random(); // Generates a random number between 0 and 1
-
-        if (score >= 6 || (score >= 4 && randomFactor > 0.5)) {
-            return 2; // Bet
-        } else if (score >= 4 || ( randomFactor > 0.5)) {
-            return 1; // Call/Check
-        } else {
-            return 0; // Fold
-        }
-    }
-
-    function aiTurn() {
-        console.log("AI: ", currentPlayer);
-        let aiHand = [...players[currentPlayer].cards, ...visibleCommunityCards];
-        let choice = makeDecision(aiHand);
-
-        switch (choice) {
-            case 0:
-                playerFold();
-                break;
-            case 1:
-                playerCallCheck();
-                break;
-            case 2:
-                playerBet(100);
-                break;
-        }
-        nextPlayer(aiTurn);
-        updateUI();
-    }
 
     updateUI();
 });
