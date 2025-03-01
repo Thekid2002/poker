@@ -1,57 +1,66 @@
-
 let players = [];
 let communityCards = [];
 let pot = 0;
-let currentPlayer = 0; 
 let communityCardsShown = 0;
-let visibleCommunityCards = [];
-let roles = [" ", "small blind", "big blind"];
+let dealerIndex = null;
+let currentPlayer = 0;
+let stakeholder = 0;
+let rounds = 0;
+const smallBlind = 50;
+const bigBlind = 100;
 
- function initializePlayers() {
-     let dealer = Math.floor(Math.random() * 5);
+function initPlayers() {
     for (let i = 0; i < 5; i++) {
         players.push({
             cash: 1000,
             bet: 0,
+            role: "",
+            allIn: false,
+            cards: [],
+            isHuman: i === 0,
+            folded: false,
             container: document.getElementById(`player-${i + 1}`),
             cashElement: document.getElementById(`player-${i + 1}-cash`),
             betElement: document.getElementById(`player-${i + 1}-bet`),
             cardElement: document.getElementById(`player-${i + 1}-cards`),
             actionElement: document.getElementById(`player-${i + 1}-action`),
             roleElement: document.getElementById(`player-${i + 1}-role`),
-            role: i === dealer ? "dealer" : roles[(i - dealer + 5) % 5] ?? "",
-            cards: [],
-            folded: false,
-        })
-        players[i].roleElement.innerHTML = `Role: ${players[i].role}`;
-
-        if(players[i].role === "dealer") {
-            currentPlayer = i;
-        }
-
-        if(players[i].role === "small blind") {
-            players[i].cash -= 50;
-            players[i].bet = 50;
-            pot += 50;
-        }
-
-        if(players[i].role === "big blind") {
-            players[i].cash -= 100;
-            players[i].bet = 100;
-            pot += 100;
-        }
-
-        players[i].cashElement.innerHTML = `Cash: ${players[i].cash}`;
+        });
     }
-
+    dealerIndex = Math.floor(Math.random() * players.length);
+    assignRoles();
 }
 
-function deal(players) {
+function assignRoles() {
+    dealerIndex = (dealerIndex + 1) % players.length;
+    let smallBlindIndex = (dealerIndex + 1) % players.length;
+    let bigBlindIndex = (dealerIndex + 2) % players.length;
+
+    players.forEach(player => player.role = "");
+    players[dealerIndex].role = "dealer";
+    players[smallBlindIndex].role = "small blind";
+    players[bigBlindIndex].role = "big blind";
+    
+    currentPlayer = (dealerIndex + 3) % players.length;
+    stakeholder = currentPlayer;
+}
+
+function postBlinds() {
+    let smallBlindPlayer = (dealerIndex + 1) % players.length;
+    let bigBlindPlayer = (dealerIndex + 2) % players.length;
+    
+    players[smallBlindPlayer].bet = smallBlind;
+    players[bigBlindPlayer].bet = bigBlind;
+    players[smallBlindPlayer].cash -= smallBlind;
+    players[bigBlindPlayer].cash -= bigBlind;
+    
+    pot += smallBlind + bigBlind;
+}
+
+function dealCards() {
     let deck = createDeck();
-    for (let i = 0; i < players.length; i++) {
-        players[i].cards = deck.splice(0, 2);
-    }
-    return deck.splice(0, 5);
+    players.forEach(player => player.cards = deck.splice(0, 2));
+    communityCards = deck.splice(0, 5);
 }
 
 function getHighestBet() {
@@ -59,197 +68,96 @@ function getHighestBet() {
 }
 
 function playerBet(amount) {
-    if (amount > 0 && players[currentPlayer].cash >= amount) {
-        players[currentPlayer].bet += amount;
-        players[currentPlayer].cash -= amount;
-        players[currentPlayer].actionElement.innerHTML = "Action: Bet";
-        pot += amount;
-    }
+    let player = players[currentPlayer];
+    if (amount > player.cash) amount = player.cash;
+    player.cash -= amount;
+    player.bet += amount;
+    pot += amount;
+    player.action = "Bet";
 }
 
 function playerCallCheck() {
+    let player = players[currentPlayer];
     let highestBet = getHighestBet();
-    let callAmount = highestBet - players[currentPlayer].bet;
-    if (callAmount > 0 && players[currentPlayer].cash >= callAmount) {
-        players[currentPlayer].bet += callAmount;
-        players[currentPlayer].cash -= callAmount;
-        players[currentPlayer].actionElement.innerHTML = "Action: Call";
-        pot += callAmount;
-    }else {
-        players[currentPlayer].actionElement.innerHTML = "Action: Check";
+    let callAmount = highestBet - player.bet;
+    
+    if (callAmount > player.cash) {
+        playerAllIn();
+    } else if (callAmount > 0) {
+        playerBet(callAmount);
+        player.action = "Call";
+    } else {
+        player.action = "Check";
     }
+}
+
+function playerAllIn() {
+    let player = players[currentPlayer];
+    pot += player.cash;
+    player.bet += player.cash;
+    player.cash = 0;
+    player.allIn = true;
+    player.action = "All In";
 }
 
 function playerFold() {
-     players[currentPlayer].container.classList.add("folded");
-     players[currentPlayer].actionElement.innerHTML = "Fold";
-     players[currentPlayer].folded = true;
+    let player = players[currentPlayer];
+    player.folded = true;
+    player.action = "Fold";
 }
 
-function nextPlayer(aiTurn) {
-     let remainingPlayers = players.filter(player => !player.folded);
-    if(remainingPlayers.length === 1) {
-        determineWinner();
-        return;
-    }
-    players[currentPlayer].container.classList.remove("active");
+function nextPlayer() {
     currentPlayer = (currentPlayer + 1) % players.length;
-    if(players[currentPlayer].folded) {
-        nextPlayer(aiTurn);
-        return;
-    }
-    players[currentPlayer].container.classList.add("active");
 
-    if (currentPlayer !== 0) {
-        setTimeout(aiTurn, 1000);
-    } else if (communityCardsShown < 5) {
-        let community = getCommunityCards();
-        for (let i = 0; i < community.length; i++) {
-            document.getElementById("community-cards").appendChild(community[i]);
-        }
-        if(communityCards.length === 0) {
-            determineWinner();
+    if (players[currentPlayer].folded || players[currentPlayer].allIn) {
+        return nextPlayer();
+    }
+
+    if (!players[currentPlayer].isHuman) {
+        return aiTurn();
+    }
+    
+    if (currentPlayer === stakeholder) {
+        rounds++;
+        if (rounds > 1) {
+            revealCommunityCards();
         }
     }
 }
 
-function evaluateHand(cards) {
-    let suits = {};
-    let values = {};
-    let straight = false;
-    let flush = false;
-    let royalFlush = false;
-    let straightFlush = false;
-    let fourOfAKind = false;
-    let threeOfAKind = false;
-    let pairs = 0;
-
-    cards.forEach(card => {
-        if (suits[card.suit]) {
-            suits[card.suit]++;
-        } else {
-            suits[card.suit] = 1;
-        }
-
-        if (values[card.value]) {
-            values[card.value]++;
-        } else {
-            values[card.value] = 1;
-        }
-    });
-
-    let uniqueValues = Object.keys(values).length;
-    let uniqueSuits = Object.keys(suits).length;
-
-    if (uniqueValues === 5) {
-        let sortedValues = Object.keys(values).sort((a, b) => a - b);
-        if (sortedValues[4] - sortedValues[0] === 4) {
-            straight = true;
-            if (uniqueSuits === 1) {
-                straightFlush = true;
-                if (sortedValues[4] === 13) {
-                    royalFlush = true;
-                }
-            }
-        }
+function revealCommunityCards() {
+    if (communityCardsShown < 5) {
+        let revealCount = communityCardsShown === 0 ? 3 : 1;
+        communityCardsShown += revealCount;
     }
-
-    for (let value in values) {
-        if (values[value] === 4) {
-            fourOfAKind = true;
-        } else if (values[value] === 3) {
-            threeOfAKind = true;
-        } else if (values[value] === 2) {
-            pairs++;
-        }
-    }
-
-    if (uniqueSuits === 1) {
-        flush = true;
-    }
-
-    if (royalFlush) {
-        return 10;
-    } else if (straightFlush) {
-        return 9;
-    } else if (fourOfAKind) {
-        return 8;
-    } else if (pairs === 1 && threeOfAKind) {
-        return 7;
-    } else if (flush) {
-        return 6;
-    } else if (straight) {
-        return 5;
-    } else if (threeOfAKind) {
-        return 4;
-    } else if (pairs === 2) {
-        return 3;
-    } else if (pairs === 1) {
-        return 2;
-    } else {
-        return 1;
-    }
+    if (communityCardsShown === 5) determineWinner();
 }
 
 function determineWinner() {
-     showAllHands();
-
-     let remainingPlayers = players.filter(player => !player.folded);
-    let playerHands = remainingPlayers.map(player => {
-        return evaluateHand(player.cards.concat(communityCards));
-    });
-
-    let winningHand = Math.max(...playerHands);
-    let winningPlayers = playerHands.map((hand, index) => {
-        if (hand === winningHand) {
-            return index;
-        }
-    }).filter(index => index !== undefined);
-
-    let winnings = Math.floor(pot / winningPlayers.length);
-    winningPlayers.forEach(index => {
-        players[index].cash += winnings;
-        players[index].container.classList.add("winner");
-    });
-
-    setTimeout(resetRound, 10000);
-
-    updateUI();
+    let remainingPlayers = players.filter(p => !p.folded);
+    let bestHand = Math.max(...remainingPlayers.map(p => evaluateHand(p.cards.concat(communityCards))));
+    let winners = remainingPlayers.filter(p => evaluateHand(p.cards.concat(communityCards)) === bestHand);
+    let winnings = Math.floor(pot / winners.length);
+    winners.forEach(p => p.cash += winnings);
+    resetRound();
 }
 
 function resetRound() {
     players.forEach(player => {
         player.bet = 0;
-        player.container.classList.remove("winner");
-        player.container.classList.remove("active");
-        if(player.folded) {
-            player.container.classList.remove("folded");
-        }
-        player.actionElement.innerHTML = "";
-        player.cardElement.innerHTML = "";
-        player.cards = [];
         player.folded = false;
-        if(player.cash === 0) {
-            player.eliminated = true;
-            player.container.classList.add("eliminated");
-        }
+        player.allIn = false;
+        if (player.cash === 0) player.eliminated = true;
     });
     players = players.filter(player => !player.eliminated);
     pot = 0;
-    currentPlayer = 0;
     communityCardsShown = 0;
-    document.getElementById("community-cards").innerHTML = "";
-    updateUI();
-    setTimeout(newRound(), 10000);
+    setTimeout(() => newRound(), 5000);
 }
 
-
 function newRound() {
-    communityCards = deal(players);
-    let images = getPlayerCards();
-
-    players[0].cardElement.appendChild(images[0]);
-    players[0].cardElement.appendChild(images[1]);
-    nextPlayer(aiTurn);
-    return true;
+    assignRoles();
+    postBlinds();
+    dealCards();
+    nextPlayer();
 }

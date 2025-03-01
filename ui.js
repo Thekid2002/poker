@@ -4,6 +4,18 @@ function updateUI() {
     players.forEach(player => {
         player.cashElement.innerHTML = `Cash: ${player.cash}`;
         player.betElement.innerHTML = `Bet: ${player.bet}`;
+        player.actionElement.innerHTML = `Action: ${player.action ?? ""}`;
+        player.roleElement.innerHTML = `Role: ${player.role}`;
+        if(player.isHuman) {
+            player.cards.forEach(card => {
+                let img = document.createElement("img");
+                img.src = `playing-cards/${card.suit}/${card.value}.png`;
+                img.width = 70;
+                img.classList.add("card");
+                player.cardElement.appendChild(img);
+            }
+            );
+        }
     });
 }
 
@@ -60,4 +72,15 @@ function getCommunityCards() {
     }
 
     return images;
+}
+
+
+function showCommunityCards() {
+    for (let i = 0; i < communityCards.length; i++) {
+        let img = document.createElement("img");
+        img.src = `playing-cards/${communityCards[i].suit}/${communityCards[i].value}.png`;
+        img.width = 60;
+        img.classList.add("card");
+        document.getElementById("community-cards").appendChild(img);
+    }
 }

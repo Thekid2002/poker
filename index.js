@@ -14,6 +14,7 @@ function makeDecision(hand) {
 
 function aiTurn() {
     console.log("AI: ", currentPlayer);
+    let visibleCommunityCards = communityCards.slice(0, communityCardsShown);
     let aiHand = [...players[currentPlayer].cards, ...visibleCommunityCards];
     let choice = makeDecision(aiHand);
 
@@ -25,10 +26,16 @@ function aiTurn() {
             playerCallCheck();
             break;
         case 2:
-            playerBet(100);
+            if(getLowestLegalRaise() == 0) {
+                playerBet(100);
+            }
+            else {
+                let feeling_frisky = Math.random();
+                playerRaise(Math.ceil(getLowestLegalRaise() * (feeling_frisky + 1)));
+            }
             break;
     }
-    nextPlayer(aiTurn);
+    nextPlayer();
     updateUI();
 }
 
@@ -36,8 +43,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const foldButton = document.getElementById("fold-button");
     const callCheckButton = document.getElementById("call-check-button");
     const betButton = document.getElementById("bet-button");
+    const allInButton = document.getElementById("all-in-button");
 
-    initializePlayers();
+    initPlayers();
     newRound()
 
     foldButton.addEventListener("click", () => {
@@ -46,7 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         playerFold();
-        nextPlayer(aiTurn);
+        nextPlayer();
         updateUI();
     });
 
@@ -56,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         playerCallCheck();
-        nextPlayer(aiTurn);
+        nextPlayer();
         updateUI();
     });
 
@@ -70,7 +78,17 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!isNaN(betAmount) && betAmount > 0) {
             playerBet(betAmount);
         }
-        nextPlayer(aiTurn);
+        nextPlayer();
+        updateUI();
+    });
+
+    allInButton.addEventListener("click", () => {
+        if (currentPlayer !== 0) {
+            alert("You can only go all in on your turn!");
+            return;
+        }
+        playerAllIn();
+        nextPlayer();
         updateUI();
     });
 
